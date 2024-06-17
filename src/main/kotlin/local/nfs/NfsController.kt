@@ -29,11 +29,8 @@ suspend fun readNfsSharesFile(call: ApplicationCall) {
 /**
  * Handles the addition of a new NFS share entry.
  */
-
-
 suspend fun addNewNfsShareEntry(call: ApplicationCall){
     val newEntry = call.receive<NfsEntry>()
-
     val status = updateNfsEntryInFile(newEntry, "./exports")
 
     when (status) {
@@ -41,5 +38,14 @@ suspend fun addNewNfsShareEntry(call: ApplicationCall){
         NfsEntryUpdateStatus.ADDED -> call.respond(HttpStatusCode.OK, "NFS entry added")
         NfsEntryUpdateStatus.ERROR -> call.respond(HttpStatusCode.InternalServerError, "NFS Entry not Written")
     }
+}
 
+suspend fun deleteNfsShareEntry(call: ApplicationCall){
+    val entry = call.receive<NfsEntry>()
+    val status = deleteNfsEntryInFile(entry, "./exports")
+
+    when (status) {
+        NfsEntryDeletionStatus.DELETED -> call.respond(HttpStatusCode.OK, "NFS entry removed")
+        NfsEntryDeletionStatus.ERROR -> {call.respond(HttpStatusCode.InternalServerError, "NFS entry not Deleted")}
+    }
 }

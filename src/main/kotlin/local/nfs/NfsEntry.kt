@@ -13,11 +13,6 @@ enum class NfsOption {
     ALL_SQUASH
 }
 
-enum class NfsEntryUpdateStatus {
-    ADDED,
-    UPDATED,
-    ERROR // You might include this for handling any potential errors.
-}
 
 @Serializable
 data class NfsEntry (
@@ -25,3 +20,14 @@ data class NfsEntry (
     val client: String,
     val options: List<NfsOption> = listOf()
 )
+
+enum class NfsEntryUpdateStatus {
+    ADDED,
+    UPDATED,
+    ERROR // You might include this for handling any potential errors.
+}
+
+enum class NfsEntryDeletionStatus {
+    DELETED,
+    ERROR
+}

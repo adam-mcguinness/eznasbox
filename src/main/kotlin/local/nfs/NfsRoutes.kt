@@ -13,5 +13,8 @@ fun Route.nfsRoutes() {
         post{
             addNewNfsShareEntry(call)
         }
+        delete{
+            deleteNfsShareEntry(call)
+        }
     }
 }

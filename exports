@@ -1,0 +1,5 @@
+/export/data 192.168.1.100(ro,sync)
+/export/apps 192.168.1.0/24(rw,sync)
+/export/public 192.168.1.101(ro) 192.168.1.102(rw)
+/export/backup 192.168.1.0/24(rw,no_root_squash,sync)
+/export/special 192.168.1.0/24(rw,sync) 10.0.0.0/16(ro,async,rw,sync)
