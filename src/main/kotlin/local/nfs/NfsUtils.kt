@@ -92,3 +92,22 @@ fun updateNfsEntryInFile(nfsEntry: NfsEntry, filePath: String): NfsEntryUpdateSt
         NfsEntryUpdateStatus.ADDED
     }
 }
+
+fun deleteNfsEntryInFile(nfsEntry: NfsEntry, filePath: String): NfsEntryDeletionStatus {
+    val exportsFile = File(filePath)
+    val entries: MutableList<NfsEntry>
+    try {
+        entries = exportsFile.parseNfsExports().toMutableList()
+    } catch (e: Exception) {
+        // Handle possible I/O errors or parsing errors
+        return NfsEntryDeletionStatus.ERROR
+    }
+    val index = entries.indexOfFirst { it.directory == nfsEntry.directory && it.client == nfsEntry.client }
+    return if (index != -1) {
+        entries.removeAt(index)
+        writeNfsEntriesToFile(entries, filePath)
+        NfsEntryDeletionStatus.DELETED
+    } else {
+        NfsEntryDeletionStatus.ERROR
+    }
+}
