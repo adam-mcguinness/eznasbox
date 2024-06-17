@@ -9,6 +9,7 @@ fun File.parseNfsExports(): List<NfsEntry> {
 
     for (line in lines) {
         if (line.isBlank()) continue
+        if (line.startsWith('#')) continue
 
         val parts = line.split("\\s+".toRegex())
         if (parts.size < 2) continue
@@ -23,7 +24,7 @@ fun File.parseNfsExports(): List<NfsEntry> {
             val options = clientAndOptions[1]
                 .split(",")
                 .mapNotNull { option ->
-                    when (option.toUpperCase()) {
+                    when (option.uppercase()) {
                         "RW" -> NfsOption.RW
                         "RO" -> NfsOption.RO
                         "SYNC" -> NfsOption.SYNC
@@ -56,7 +57,7 @@ fun List<NfsEntry>.toNfsExports(): String {
         builder.append(directory)
         for ((client, options) in clients) {
             builder.append(" $client(")
-            builder.append(options.joinToString(",") { it.name.toLowerCase() })
+            builder.append(options.joinToString(",") { it.name.lowercase() })
             builder.append(")")
         }
         builder.appendLine()
@@ -68,4 +69,26 @@ fun List<NfsEntry>.toNfsExports(): String {
 fun writeNfsEntriesToFile(nfsEntries: List<NfsEntry>, filePath: String) {
     val fileContent = nfsEntries.toNfsExports()
     File(filePath).writeText(fileContent)
+}
+
+fun updateNfsEntryInFile(nfsEntry: NfsEntry, filePath: String): NfsEntryUpdateStatus {
+    val exportsFile = File(filePath)
+    val entries: MutableList<NfsEntry>
+    try {
+        entries = exportsFile.parseNfsExports().toMutableList()
+    } catch (e: Exception) {
+        // Handle possible I/O errors or parsing errors
+        return NfsEntryUpdateStatus.ERROR
+    }
+
+    val index = entries.indexOfFirst { it.directory == nfsEntry.directory && it.client == nfsEntry.client }
+    return if (index != -1) {
+        entries[index] = nfsEntry
+        writeNfsEntriesToFile(entries, filePath)
+        NfsEntryUpdateStatus.UPDATED
+    } else {
+        entries.add(nfsEntry)
+        writeNfsEntriesToFile(entries, filePath)
+        NfsEntryUpdateStatus.ADDED
+    }
 }

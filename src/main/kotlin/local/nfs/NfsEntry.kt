@@ -13,6 +13,12 @@ enum class NfsOption {
     ALL_SQUASH
 }
 
+enum class NfsEntryUpdateStatus {
+    ADDED,
+    UPDATED,
+    ERROR // You might include this for handling any potential errors.
+}
+
 @Serializable
 data class NfsEntry (
     val directory: String,
