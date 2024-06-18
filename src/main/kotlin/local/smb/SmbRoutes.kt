@@ -43,15 +43,11 @@ fun Route.smbRoutes() {
         }) {
             readSmbSharesFromFile(call)
         }
-        put("{name}",{
+        put({
             summary = "Smb Shares"
             description = "Smb shares"
             tags = listOf("smb shares")
             request {
-                pathParameter<String>("name"){
-                    required = true
-                    allowEmptyValue = false
-                }
                 body<SmbEntry>()
             }
             response {

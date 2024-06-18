@@ -4,46 +4,48 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SmbConfig(
-    val config: SmbGlobal,
+    var config: SmbGlobal,
     var shares: List<SmbEntry>
 )
 
 @Serializable
 data class SmbEntry (
-    var name: String,
-    var directory: String?,
-    var readOnly: Boolean?,
-    var guestOk: Boolean?,
-    var validUsers: List<String> = listOf(),
-    var invalidUsers: List<String> = listOf(),
-    var validGroups: List<String> = listOf(),
-    var invalidGroups: List<String> = listOf(),
-    var writable: Boolean = true,
+    var name: String = "name",
+    var path: String = "/path",
     var browsable: Boolean = true,
-    var createMask: String = "0755",
-    var directoryMask: String = "0755",
-    var forceUser: String = "",
-    var forceGroup: String = "",
-    var forceCreateMode: String = "0755",
-    var forceDirectoryMode: String = "0755",
-    var forceSecurityMode: Boolean = false
+    var writable: Boolean = true,
+    var guestOk: Boolean? = true,
+    var readOnly: Boolean? = false,
+    var forceUser: String = "user",
+    var validUsers: List<String>? = null,
+    var invalidUsers: List<String>? = null,
+    var validGroups: List<String>? = null,
+    var invalidGroups: List<String>? = null,
+    var createMask: String? = null,
+    var directoryMask: String? = null,
+    var forceGroup: String? = null,
+    var forceCreateMode: String? = null,
+    var forceDirectoryMode: String? = null,
+    var forceSecurityMode: Boolean? = null
 )
 
 @Serializable
 data class SmbGlobal (
-    var mapToGuest: String = "Bad User",
-    var security: String = "user",
     var workgroup: String = "WORKGROUP",
     var serverString: String = "Samba Server",
-    var interfaces: List<String> = listOf(),
-    var bindInterfacesOnly: Boolean = true,
-    var hostsAllow: List<String> = listOf(),
-    var hostsDeny: List<String> = listOf(),
-    var logLevel: Int = 2,
-    var maxLogSize: Int = 1000,
-    var syslog: Int = 0,
+    var serverRole: String = "standalone server",
     var logFile: String = "/var/log/samba/log.%m",
-    var maxConnections: Int = 0,
+    var maxLogSize: Int = 100,
+    var security: String = "user",
+    var mapToGuest: String = "Bad User",
     var minProtocol: String = "SMB2",
-    var clientNTLMv2Auth: Boolean = true
+    var dnsProxy: Boolean? = null,
+    var interfaces: List<String>? = null,
+    var bindInterfacesOnly: Boolean? = null,
+    var hostsAllow: List<String>? = null,
+    var hostsDeny: List<String>? = null,
+    var logLevel: Int? = null,
+    var syslog: Int? = null,
+    var maxConnections: Int? = null,
+    var clientNTLMv2Auth: Boolean? = null
 )

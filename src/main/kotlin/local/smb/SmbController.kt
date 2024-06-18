@@ -5,14 +5,17 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 
-
-fun updateSmbGlobalConfigSettings(call: ApplicationCall) {
-        TODO("Not yet implemented")
-}
-
 suspend fun readSmbGlobalConfigSettingsFromFile(call: ApplicationCall) {
     val parsedFile = readSmbConfigFromFile()
     call.respond(parsedFile.config)
+}
+
+suspend fun updateSmbGlobalConfigSettings(call: ApplicationCall) {
+    val config = call.receive<SmbGlobal>()
+    val parsedFile = readSmbConfigFromFile()
+    parsedFile.config = config
+    writeSmbConfigToFile(parsedFile)
+    call.respond(HttpStatusCode.OK, "successfully updated smb global config")
 }
 
 suspend fun readSmbSharesFromFile(call: ApplicationCall) {
@@ -27,11 +30,15 @@ suspend fun updateSmbShares(call: ApplicationCall) {
     val index = shares.indexOfFirst { it.name == share.name }
     if (index != -1) {
         shares[index] = share
+        configFile.shares = shares
+        writeSmbConfigToFile(configFile)
+        call.respond(HttpStatusCode.OK, "successfully updated smb share ${share.name}")
     } else{
         shares.add(share)
+        configFile.shares = shares
+        writeSmbConfigToFile(configFile)
+        call.respond(HttpStatusCode.OK, "successfully added smb share ${share.name}")
     }
-    configFile.shares = shares
-    writeSmbConfigToFile(configFile)
 }
 
 suspend fun removeSmbShare(call: ApplicationCall) {
@@ -43,9 +50,8 @@ suspend fun removeSmbShare(call: ApplicationCall) {
         shares.removeAt(index)
         configFile.shares = shares
         writeSmbConfigToFile(configFile)
-        call.respond(HttpStatusCode.OK, message = share.toString() + "has been successfully removed")
+        call.respond(HttpStatusCode.OK, "$share has been successfully removed")
     } else {
-        call.respond(HttpStatusCode.NotFound)
+        call.respond(HttpStatusCode.NotFound, "could not find share $share")
     }
-
 }

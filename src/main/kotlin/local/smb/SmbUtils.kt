@@ -3,6 +3,10 @@ import java.io.File
 
 fun readSmbConfigFromFile(): SmbConfig {
     val file = File("./smb.conf")
+    if (!file.exists()) {
+        return createAndWriteDefaultConfig()
+    }
+
     val lines = file.readLines()
     val shares = mutableListOf<SmbEntry>()
     val global = SmbGlobal()
@@ -16,8 +20,8 @@ fun readSmbConfigFromFile(): SmbConfig {
             } else {
                 // Finish the previous share
                 currentShare?.let { shares.add(it) }
-                // Start a new share
-                currentShare = SmbEntry(name = section,"",true, true)
+                // Start a new share with the correct name
+                currentShare = SmbEntry(name = section) // Ensure the share name is set correctly here
             }
         } else if (!line.trim().startsWith(";") && line.contains("=")) {
             val parts = line.trim().split("=", limit = 2)
@@ -26,26 +30,10 @@ fun readSmbConfigFromFile(): SmbConfig {
                 val value = parts[1].trim()
                 if (currentShare == null) {
                     // Global configuration settings
-                    when (key.lowercase()) {
-                        "workgroup" -> global.workgroup = value
-                        "server string" -> global.serverString = value
-                        "security" -> global.security = value
-                        "map to guest" -> global.mapToGuest = value
-                        "log file" -> global.logFile = value
-                        "max log size" -> global.maxLogSize = value.toIntOrNull() ?: global.maxLogSize
-                    }
+                    setGlobalConfig(global, key, value)
                 } else {
                     // Share specific settings
-                    when (key.lowercase()) {
-                        "path" -> currentShare!!.directory = value
-                        "writable" -> currentShare!!.writable = (value.lowercase() == "yes")
-                        "guest ok" -> currentShare!!.guestOk = (value.lowercase() == "yes")
-                        "read only" -> currentShare!!.readOnly = (value.lowercase() == "no")
-                        "create mask" -> currentShare!!.createMask = value
-                        "directory mask" -> currentShare!!.directoryMask = value
-                        "force user" -> currentShare!!.forceUser = value
-                        "force group" -> currentShare!!.forceGroup = value
-                    }
+                    setShareConfig(currentShare!!, key, value)
                 }
             }
         }
@@ -56,32 +44,89 @@ fun readSmbConfigFromFile(): SmbConfig {
     return SmbConfig(global, shares)
 }
 
+fun setGlobalConfig(global: SmbGlobal, key: String, value: String) {
+    when (key.lowercase()) {
+        "workgroup" -> global.workgroup = value
+        "server string" -> global.serverString = value
+        "security" -> global.security = value
+        "map to guest" -> global.mapToGuest = value
+        "log file" -> global.logFile = value
+        "max log size" -> global.maxLogSize = value.toIntOrNull() ?: global.maxLogSize
+    }
+}
+
+fun setShareConfig(share: SmbEntry, key: String, value: String) {
+    when (key.lowercase()) {
+        "path" -> share.path = value
+        "writable" -> share.writable = (value.lowercase() == "yes")
+        "guest ok" -> share.guestOk = (value.lowercase() == "yes")
+        "read only" -> share.readOnly = (value.lowercase() == "no")
+        "create mask" -> share.createMask = value
+        "directory mask" -> share.directoryMask = value
+        "force user" -> share.forceUser = value
+        "force group" -> share.forceGroup = value
+    }
+}
+
 fun writeSmbConfigToFile(config: SmbConfig) {
     val builder = StringBuilder()
+    val uniqueShares = config.shares.distinctBy { it.name }
+
+    fun writeLine(prefix: String, value: Any?) {
+        when (value) {
+            is Boolean -> builder.append("   $prefix = ${if (value) "yes" else "no"}\n")
+            null -> {} // Do nothing if value is null
+            else -> builder.append("   $prefix = $value\n")
+        }
+    }
 
     // Write global settings
     builder.append("[global]\n")
     with(config.config) {
-        builder.append("   workgroup = $workgroup\n")
-        builder.append("   server string = $serverString\n")
-        builder.append("   security = $security\n")
-        builder.append("   map to guest = $mapToGuest\n")
-        builder.append("   log file = $logFile\n")
-        builder.append("   max log size = $maxLogSize\n")
+        writeLine("workgroup", workgroup)
+        writeLine("server string", serverString)
+        writeLine("server role",serverRole)
+        writeLine("log file",logFile)
+        writeLine("max log size",maxLogSize)
+        writeLine("security",security)
+        writeLine("map to guest",mapToGuest)
     }
 
     // Write shares
-    config.shares.forEach { share ->
+    uniqueShares.forEach { share ->
         builder.append("\n[${share.name}]\n")
-        builder.append("   path = ${share.directory}\n")
-        builder.append("   writable = ${if (share.writable) "yes" else "no"}\n")
-        builder.append("   guest ok = ${if (share.guestOk == true) "yes" else "no"}\n")
-        builder.append("   read only = ${if (share.readOnly == true) "no" else "yes"}\n")
-        builder.append("   create mask = ${share.createMask}\n")
-        builder.append("   directory mask = ${share.directoryMask}\n")
-        builder.append("   force user = ${share.forceUser}\n")
-        builder.append("   force group = ${share.forceGroup}\n")
+        writeLine("path", share.path)
+        writeLine("browsable",share.browsable)
+        writeLine("writable", share.writable)
+        writeLine("guest ok",share.guestOk)
+        writeLine("read only",share.readOnly)
+        writeLine("force user",share.forceUser)
+        writeLine("create mask",share.createMask)
+        writeLine("directory mask",share.directoryMask)
+        writeLine("force group",share.forceGroup)
     }
 
     File("./smb.conf").writeText(builder.toString())
+}
+
+fun createAndWriteDefaultConfig(): SmbConfig {
+    val defaultGlobal = SmbGlobal(
+        workgroup = "WORKGROUP",
+        serverString = "Samba Server",
+        serverRole = "standalone server",
+        logFile = "/var/log/samba/log.%m",
+        maxLogSize = 100,
+        security = "user",
+        mapToGuest = "Bad User"
+    )
+    val defaultShare = SmbEntry(
+        name = "Default Share",
+        path = "/default/path",
+        browsable = true,
+        writable = true,
+        guestOk = true
+    )
+    val config = SmbConfig(defaultGlobal, listOf(defaultShare))
+    writeSmbConfigToFile(config) // Write the default config to file
+    return config
 }
