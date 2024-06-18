@@ -5,7 +5,7 @@ fun readSmbConfigFromFile(): SmbConfig {
     val file = File("./smb.conf")
     val lines = file.readLines()
     val shares = mutableListOf<SmbEntry>()
-    var global = SmbGlobal()
+    val global = SmbGlobal()
     var currentShare: SmbEntry? = null
 
     lines.forEach { line ->
