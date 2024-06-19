@@ -16,18 +16,8 @@ enum class NfsOption {
 
 @Serializable
 data class NfsEntry (
+    var index: Int? = null,
     val directory: String,
     val client: String,
     val options: List<NfsOption> = listOf()
 )
-
-enum class NfsEntryUpdateStatus {
-    ADDED,
-    UPDATED,
-    ERROR // You might include this for handling any potential errors.
-}
-
-enum class NfsEntryDeletionStatus {
-    DELETED,
-    ERROR
-}

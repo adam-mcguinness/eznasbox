@@ -4,48 +4,41 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import java.io.File
 
-/**
- * Reads NFS shares from a file and responds with the content in JSON format.
- */
 suspend fun readNfsSharesFile(call: ApplicationCall) {
-    val exportsFile = File("./exports")
-    if (exportsFile.exists()) {
-        // Assume parseNfsExports is a function that parses the file into a list of NfsEntry
-        val nfsEntries = exportsFile.parseNfsExports()
-        // Convert the list of NfsEntry objects to a JSON string
-        val jsonResponse = Json.encodeToString(nfsEntries)
-        // Respond with the JSON representation of NFS entries
-        call.respondText(jsonResponse, ContentType.Application.Json)
-    } else {
-        // Respond with an error if the file does not exist
-        call.respond(HttpStatusCode.NotFound, "Exports file not found.")
-    }
+    val exportsFile = "./exports"
+    val shares = parseNfsExportsFile(exportsFile)
+    call.respond(shares)
 }
 
-/**
- * Handles the addition of a new NFS share entry.
- */
 suspend fun addNewNfsShareEntry(call: ApplicationCall){
-    val newEntry = call.receive<NfsEntry>()
-    val status = updateNfsEntryInFile(newEntry, "./exports")
-
-    when (status) {
-        NfsEntryUpdateStatus.UPDATED -> call.respond(HttpStatusCode.OK, "NFS entry updated")
-        NfsEntryUpdateStatus.ADDED -> call.respond(HttpStatusCode.OK, "NFS entry added")
-        NfsEntryUpdateStatus.ERROR -> call.respond(HttpStatusCode.InternalServerError, "NFS Entry not Written")
+    val exportsFile = "./exports"
+    val shares = parseNfsExportsFile(exportsFile).toMutableList()
+    val newShare = call.receive<NfsEntry>()
+    val index = newShare.index
+    if (index == null) {
+        newShare.index = shares.size
+        shares.add(newShare)
+        writeNfsExportsFile(shares, exportsFile)
+        call.respond(HttpStatusCode.OK,newShare)
+    } else {
+        shares[index] = newShare
+        writeNfsExportsFile(shares, exportsFile)
+        call.respond(HttpStatusCode.OK,newShare)
     }
 }
 
 suspend fun deleteNfsShareEntry(call: ApplicationCall){
-    val entry = call.receive<NfsEntry>()
-    val status = deleteNfsEntryInFile(entry, "./exports")
-
-    when (status) {
-        NfsEntryDeletionStatus.DELETED -> call.respond(HttpStatusCode.OK, "NFS entry removed")
-        NfsEntryDeletionStatus.ERROR -> {call.respond(HttpStatusCode.InternalServerError, "NFS entry not Deleted")}
+    val exportsFile = "./exports"
+    val shares = parseNfsExportsFile(exportsFile).toMutableList()
+    val index = call.parameters["index"]?.toInt()
+    if (index != null) {
+        if (index >= 0 && index < shares.size){
+            shares.removeAt(index)
+            writeNfsExportsFile(shares, exportsFile)
+            call.respond(HttpStatusCode.OK, "item at index $index deleted")
+        }else{
+            call.respond(HttpStatusCode.NotFound)
+        }
     }
 }

@@ -3,111 +3,43 @@ package local.nfs
 import java.io.File
 
 
-fun File.parseNfsExports(): List<NfsEntry> {
+fun parseNfsExportsFile(filePath: String): List<NfsEntry> {
     val entries = mutableListOf<NfsEntry>()
-    val lines = this.readLines()
+    val file = File(filePath)
+    var index = 0
 
-    for (line in lines) {
-        if (line.isBlank()) continue
-        if (line.startsWith('#')) continue
-
-        val parts = line.split("\\s+".toRegex())
-        if (parts.size < 2) continue
-
-        val directory = parts[0]
-
-        for (i in 1 until parts.size) {
-            val clientAndOptions = parts[i].split("(", ")")
-            if (clientAndOptions.size < 2) continue
-
-            val client = clientAndOptions[0]
-            val options = clientAndOptions[1]
-                .split(",")
-                .mapNotNull { option ->
-                    when (option.uppercase()) {
-                        "RW" -> NfsOption.RW
-                        "RO" -> NfsOption.RO
-                        "SYNC" -> NfsOption.SYNC
-                        "ASYNC" -> NfsOption.ASYNC
-                        "NO_ROOT_SQUASH" -> NfsOption.NO_ROOT_SQUASH
-                        "ROOT_SQUASH" -> NfsOption.ROOT_SQUASH
-                        "ALL_SQUASH" -> NfsOption.ALL_SQUASH
-                        else -> null
+    file.forEachLine { line ->
+        // Trim and check if line is empty to skip any empty lines
+        val trimmedLine = line.trim()
+        if (trimmedLine.isNotEmpty()) {
+            val firstSpaceIndex = trimmedLine.indexOf(' ')
+            if (firstSpaceIndex != -1) {
+                val directory = trimmedLine.substring(0, firstSpaceIndex)
+                val clientWithOptions = trimmedLine.substring(firstSpaceIndex).trim()
+                val client = clientWithOptions.substringBefore('(').trim()
+                val optionsStr = clientWithOptions.substringAfter('(', "").substringBefore(')').trim()
+                val options = optionsStr.split(',').mapNotNull { option ->
+                    try {
+                        NfsOption.valueOf(option.uppercase())
+                    } catch (e: IllegalArgumentException) {
+                        null // Skip unknown options
                     }
                 }
-            entries.add(NfsEntry(directory, client, options))
+                entries.add(NfsEntry(index, directory, client, options))
+                index++ // Increment index for each line processed
+            }
         }
     }
-
     return entries
 }
 
-fun List<NfsEntry>.toNfsExports(): String {
-    val exportsMap = mutableMapOf<String, MutableList<Pair<String, List<NfsOption>>>>()
+fun writeNfsExportsFile(entries: List<NfsEntry>, filePath: String) {
+    val file = File(filePath)
 
-    // Group entries by directory
-    for (entry in this) {
-        exportsMap.computeIfAbsent(entry.directory) { mutableListOf() }
-            .add(entry.client to entry.options)
-    }
-
-    // Build the export file content
-    val builder = StringBuilder()
-    for ((directory, clients) in exportsMap) {
-        builder.append(directory)
-        for ((client, options) in clients) {
-            builder.append(" $client(")
-            builder.append(options.joinToString(",") { it.name.lowercase() })
-            builder.append(")")
+    file.bufferedWriter().use { out ->
+        entries.forEach { entry ->
+            val optionsStr = entry.options.joinToString(",") { it.name.lowercase() }
+            out.write("${entry.directory} ${entry.client}($optionsStr)\n")
         }
-        builder.appendLine()
-    }
-
-    return builder.toString().trim()
-}
-
-fun writeNfsEntriesToFile(nfsEntries: List<NfsEntry>, filePath: String) {
-    val fileContent = nfsEntries.toNfsExports()
-    File(filePath).writeText(fileContent)
-}
-
-fun updateNfsEntryInFile(nfsEntry: NfsEntry, filePath: String): NfsEntryUpdateStatus {
-    val exportsFile = File(filePath)
-    val entries: MutableList<NfsEntry>
-    try {
-        entries = exportsFile.parseNfsExports().toMutableList()
-    } catch (e: Exception) {
-        // Handle possible I/O errors or parsing errors
-        return NfsEntryUpdateStatus.ERROR
-    }
-
-    val index = entries.indexOfFirst { it.directory == nfsEntry.directory && it.client == nfsEntry.client }
-    return if (index != -1) {
-        entries[index] = nfsEntry
-        writeNfsEntriesToFile(entries, filePath)
-        NfsEntryUpdateStatus.UPDATED
-    } else {
-        entries.add(nfsEntry)
-        writeNfsEntriesToFile(entries, filePath)
-        NfsEntryUpdateStatus.ADDED
-    }
-}
-
-fun deleteNfsEntryInFile(nfsEntry: NfsEntry, filePath: String): NfsEntryDeletionStatus {
-    val exportsFile = File(filePath)
-    val entries: MutableList<NfsEntry>
-    try {
-        entries = exportsFile.parseNfsExports().toMutableList()
-    } catch (e: Exception) {
-        // Handle possible I/O errors or parsing errors
-        return NfsEntryDeletionStatus.ERROR
-    }
-    val index = entries.indexOfFirst { it.directory == nfsEntry.directory && it.client == nfsEntry.client }
-    return if (index != -1) {
-        entries.removeAt(index)
-        writeNfsEntriesToFile(entries, filePath)
-        NfsEntryDeletionStatus.DELETED
-    } else {
-        NfsEntryDeletionStatus.ERROR
     }
 }
