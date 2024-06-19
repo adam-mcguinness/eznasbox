@@ -4,10 +4,10 @@ import java.io.File
 
 
 fun File.parseNfsExports(): List<NfsEntry> {
-    val entriesMap = mutableMapOf<Pair<Int, String>, MutableMap<String, List<NfsOption>>>()
+    val entries = mutableListOf<NfsEntry>()
+    val lines = this.readLines()
 
     var index = 0  // Placeholder for the real index if it's specified elsewhere
-    val lines = this.readLines()
 
     for (line in lines) {
         if (line.isBlank() || line.startsWith('#')) continue
@@ -16,8 +16,7 @@ fun File.parseNfsExports(): List<NfsEntry> {
         if (parts.size < 2) continue
 
         val directory = parts[0]
-        val key = Pair(index, directory)
-        val clients = entriesMap.computeIfAbsent(key) { mutableMapOf() }
+        val clients = mutableListOf<ClientOptions>()
 
         for (i in 1 until parts.size) {
             val clientAndOptions = parts[i].split("(", ")")
@@ -38,15 +37,14 @@ fun File.parseNfsExports(): List<NfsEntry> {
                         else -> null
                     }
                 }
-            clients.merge(client, options) { oldOptions, newOptions -> oldOptions + newOptions }
+            clients.add(ClientOptions(client, options))
         }
+
+        entries.add(NfsEntry(index = index, directory = directory, clients = clients))
         index++  // Increment index to simulate line numbers or identifiers if needed
     }
 
-    // Convert the map entries into a list of NfsEntry objects
-    return entriesMap.map { (key, clientMap) ->
-        NfsEntry(index = key.first, directory = key.second, clients = clientMap)
-    }
+    return entries
 }
 
 fun List<NfsEntry>.toNfsExports(): String {

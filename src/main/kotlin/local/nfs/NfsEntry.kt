@@ -18,7 +18,13 @@ enum class NfsOption {
 data class NfsEntry(
     var index: Int? = null,
     val directory: String,
-    val clients: Map<String, List<NfsOption>>
+    val clients: List<ClientOptions>
+)
+
+@Serializable
+data class ClientOptions(
+    val client: String,
+    val options: List<NfsOption>
 )
 
 enum class NfsEntryUpdateStatus {
