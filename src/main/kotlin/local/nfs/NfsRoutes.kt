@@ -28,7 +28,7 @@ fun Route.nfsRoutes() {
             }
             response {
                 HttpStatusCode.OK to {
-                    body<String> {
+                    body<NfsEntry> {
                         description = "NFS entry updated"
                     }
                 }
@@ -41,12 +41,12 @@ fun Route.nfsRoutes() {
         }){
             addNewNfsShareEntry(call)
         }
-        delete("{directory}",{
+        delete("{index}",{
             summary = "test delete"
             description = "This will return all of the nfs shares."
             tags = listOf("nfs")
             request {
-                pathParameter<String>("directory"){
+                pathParameter<String>("index"){
                     required = true
                     allowEmptyValue = false
                 }

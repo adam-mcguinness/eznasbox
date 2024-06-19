@@ -15,10 +15,10 @@ enum class NfsOption {
 
 
 @Serializable
-data class NfsEntry (
+data class NfsEntry(
+    var index: Int? = null,
     val directory: String,
-    val client: String,
-    val options: List<NfsOption> = listOf()
+    val clients: Map<String, List<NfsOption>>
 )
 
 enum class NfsEntryUpdateStatus {
