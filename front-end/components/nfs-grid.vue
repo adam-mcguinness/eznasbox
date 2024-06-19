@@ -17,6 +17,7 @@ const nfsExports = computed(() => nfsStore.nfsExports);
 :items="nfsExports"
 >
 </v-data-table>
+
 </template>
 
 <style scoped>
