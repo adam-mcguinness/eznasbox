@@ -16,27 +16,48 @@ const localItem = reactive({
   client: '',
   options: []
 });
+const addOrUpdate = computed(() => {
+  if (props.index == null) {
+    return 'Add';
+  } else {
+    return 'Update';
+  }
+});
 
 // Watch for modelValue and index changes
 watch(() => props.modelValue, (newVal) => {
   dialogOpen.value = newVal;
-  if (newVal && props.index !== undefined && nfsStore.nfsShares[props.index]) {
-    const item = nfsStore.nfsShares[props.index];
-    localItem.directory = item.directory;
-    localItem.client = item.client;
-    localItem.options = item.options;
+  if (newVal) {
+    if (props.index == null) {
+      // Reset localItem if there's no index provided
+      resetLocalItem();
+    } else if (nfsStore.nfsShares[props.index]) {
+      // Load existing data if index is provided
+      const item = nfsStore.nfsShares[props.index];
+      localItem.directory = item.directory;
+      localItem.client = item.client;
+      localItem.options = [...item.options];  // Make sure to copy the array
+    }
   }
 });
+
+function resetLocalItem() {
+  localItem.directory = '';
+  localItem.client = '';
+  localItem.options = [];
+}
 
 function closeDialog() {
   emits('update:modelValue', false);
 }
 
 function updateItem(){
-  if (props.index !== undefined) {
+  if (props.index === undefined) {
+    nfsStore.addNfsShare(localItem);
+  }else {
     nfsStore.updateNfsShare(props.index, localItem);
-    closeDialog();
   }
+    closeDialog();
 }
 </script>
 
@@ -61,8 +82,8 @@ function updateItem(){
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="green darken-1" @click="updateItem">update</v-btn>
         <v-btn color="green darken-1" @click="closeDialog">Close</v-btn>
+        <v-btn color="green darken-1" @click="updateItem">{{ addOrUpdate }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

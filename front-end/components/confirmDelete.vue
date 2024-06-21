@@ -36,8 +36,8 @@ function deleteItem(){
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn @click="deleteItem">Okay</v-btn>
         <v-btn @click="closeDialog">Close</v-btn>
+        <v-btn @click="deleteItem">Okay</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

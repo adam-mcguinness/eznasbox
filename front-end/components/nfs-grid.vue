@@ -33,9 +33,14 @@ const headers = ref([
 const isEditDialogOpen = ref(false);
 const isConfirmDialogOpen = ref(false);
 
-function newItem() {
-  console.log('Adding a new NFS share');
-  // Open a dialog or component to add a new NFS share
+function openNewItem() {
+  currentItem.value ={
+    index: null,
+    directory: '',
+    client: '',
+    options: '',
+  }
+  isEditDialogOpen.value = true;
 }
 
 function openConfirmDialog(item){
@@ -44,9 +49,6 @@ function openConfirmDialog(item){
 }
 
 function openEditDialog(item) {
-  if (currentItem.index === null) {
-    currentItem.index = nfsShares.value.length;
-  }
   currentItem.value = item;
   isEditDialogOpen.value = true;
 }
@@ -57,7 +59,7 @@ function openEditDialog(item) {
     <v-toolbar flat>
       <v-toolbar-title>NFS Shares</v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn color="primary" @click="openEditDialog">
+      <v-btn color="primary" @click="openNewItem">
         New NFS Share
       </v-btn>
     </v-toolbar>

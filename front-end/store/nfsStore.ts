@@ -32,7 +32,7 @@ export const useNfsStore = defineStore('nfsStore', {
                 this.error = e
             }
         },
-        async updateNfsShare(index, share){
+        async updateNfsShare(index, share) {
             const apiUrl = `http://localhost:8080/nfs`;
             const updatedShare = {
                 index: index,
@@ -45,6 +45,24 @@ export const useNfsStore = defineStore('nfsStore', {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(updatedShare)
+                });
+                if (!response.ok) {
+                    throw new Error(response.statusText);
+                }
+                await this.getNfsShares()
+            } catch (e) {
+                this.error = e
+            }
+        },
+        async addNfsShare(share){
+            const apiUrl = `http://localhost:8080/nfs`;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(share)
                 });
                 if (!response.ok) {
                     throw new Error(response.statusText);
